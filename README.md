@@ -1,5 +1,7 @@
 # Breezy
-[![Build Status](https://travis-ci.org/ChromaticHQ/breezy.svg?branch=8.x-1.x)](https://travis-ci.org/ChromaticHQ/breezy)
+![Build Status](https://travis-ci.org/ChromaticHQ/breezy.svg?branch=8.x-1.x)
+
+[Build Status]: https://travis-ci.org/ChromaticHQ/breezy
 
 [Breezy HR] is end-to-end recruiting software designed to optimize your
 recruiting process and delight your entire team. Bring everyone on board in less
