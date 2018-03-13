@@ -1,0 +1,15 @@
+{#
+/**
+ * @file
+ * Default theme implementation for position detail listing.
+ *
+ * Available variables:
+ * - name: The position name.
+ * - description: The position description markup.
+ *
+ * @ingroup themeable
+ */
+#}
+{% if description %}
+  {{ description|raw }}
+{% endif %}
