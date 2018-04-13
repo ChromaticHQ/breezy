@@ -5,6 +5,7 @@ namespace Drupal\breezy;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Link;
+use Drupal\Core\Url;
 use GuzzleHttp\ClientInterface;
 
 /**
@@ -21,6 +22,11 @@ class BreezyApiManager {
    * Number of days to cache the Breezy access token.
    */
   const BREEZY_TOKEN_CACHE_DAYS = 1;
+
+  /**
+   * Number of minutes to cache Breezy data.
+   */
+  const BREEZY_DATA_CACHE_MINUTES = 2;
 
   /**
    * Breezy module configuration.
@@ -82,7 +88,8 @@ class BreezyApiManager {
    * @see https://developer.breezy.hr/docs/signin
    */
   protected function getBreezyAccessToken($reset = FALSE) {
-    if (!$reset && $cache = $this->cache->get('breezy.breezy_access_token')) {
+    $cache_key = 'breezy.breezy_access_token';
+    if (!$reset && $cache = $this->cache->get($cache_key)) {
       $access_token = $cache->data;
     }
     else {
@@ -95,7 +102,7 @@ class BreezyApiManager {
         ]);
         $response = json_decode($response->getBody());
         $access_token = $response->access_token;
-        $this->cache->set('breezy.breezy_access_token', $access_token, $this->breezyCacheExpirationTimestamp());
+        $this->cache->set($cache_key, $access_token, $this->breezyTokenCacheExpirationTimestamp());
       }
       catch (Exception $e) {
         $this->getLogger('breezy')->error('Unable to retrieve Breezy access token: @error', [
@@ -116,7 +123,8 @@ class BreezyApiManager {
    *   An array of Breezy positions.
    */
   public function getPositions($reset = FALSE) {
-    if (!$reset && $cache = $this->cache->get('breezy.breezy_positions')) {
+    $cache_key = 'breezy.breezy_positions';
+    if (!$reset && $cache = $this->cache->get($cache_key)) {
       $positions = $cache->data;
     }
     else {
@@ -124,7 +132,7 @@ class BreezyApiManager {
         $positions_url = self::BREEZY_API_BASE_URL . '/company/' . $this->breezyConfig->get('breezy_company_id') . '/positions?state=published';
         $response = $this->httpClient->get($positions_url, $this->breezyGetRequestHeaders());
         $positions = json_decode($response->getBody());
-        $this->cache->set('breezy.breezy_positions', $positions, time() + 120);
+        $this->cache->set($cache_key, $positions, $this->breezyCacheExpirationTimestamp());
       }
       catch (Exception $e) {
         $this->getLogger('breezy')->error('Error accessing Breezy API: @error', [
@@ -147,7 +155,8 @@ class BreezyApiManager {
    *   The entire Breezy position object.
    */
   public function getPositionData($position_id, $reset = FALSE) {
-    if (!$reset && $cache = $this->cache->get('breezy.breezy_position_' . $position_id)) {
+    $cache_key = 'breezy.breezy_position_' . $position_id;
+    if (!$reset && $cache = $this->cache->get($cache_key)) {
       $position = $cache->data;
     }
     else {
@@ -155,7 +164,7 @@ class BreezyApiManager {
         $positions_url = self::BREEZY_API_BASE_URL . '/company/' . $this->breezyConfig->get('breezy_company_id') . '/position/' . $position_id;
         $response = $this->httpClient->get($positions_url, $this->breezyGetRequestHeaders());
         $position = json_decode($response->getBody());
-        $this->cache->set('breezy.breezy_position_' . $position_id, $position, time() + 120);
+        $this->cache->set($cache_key, $position, $this->breezyCacheExpirationTimestamp());
       }
       catch (Exception $e) {
         $this->getLogger('breezy')->error('Error accessing Breezy API: @error', [
@@ -164,6 +173,67 @@ class BreezyApiManager {
       }
     }
     return $position;
+  }
+
+  /**
+   * Retrieves an application URL for a given position.
+   *
+   * @param string $position_id
+   *   A Breezy position id.
+   * @param bool $reset
+   *   If TRUE, cached values will be ignored.
+   *
+   * @return Drupal\Core\Url
+   *   A Drupal Url object pointing to a Breezy positiona application page.
+   */
+  public function getPositionApplicationUrl($position_id, $reset = FALSE) {
+    $cache_key = 'breezy.breezy_position_application_uri_' . $position_id;
+    if (!$reset && $cache = $this->cache->get($cache_key)) {
+      $position_application_uri = $cache->data;
+    }
+    else {
+      $company = $this->getCompany();
+      $position = $this->getPositionData($position_id);
+
+      $position_application_uri = '//' . $company->friendly_id . '.breezy.hr/p/' . $position->friendly_id . '/apply';
+      $this->cache->set($cache_key, $position_application_uri, $this->breezyCacheExpirationTimestamp());
+    }
+
+    $position_application_url = Url::fromUri($position_application_uri, [
+      'absolute' => TRUE,
+      'https' => TRUE,
+    ]);
+    return $position_application_url;
+  }
+
+  /**
+   * Retrieves Breezy company data.
+   *
+   * @param bool $reset
+   *   If TRUE, cached values will be ignored.
+   *
+   * @return object
+   *   A Breezy company object.
+   */
+  protected function getCompany($reset = FALSE) {
+    $cache_key = 'breezy.breezy_company';
+    if (!$reset && $cache = $this->cache->get($cache_key)) {
+      $company = $cache->data;
+    }
+    else {
+      try {
+        $company_url = self::BREEZY_API_BASE_URL . '/company/' . $this->breezyConfig->get('breezy_company_id');
+        $response = $this->httpClient->get($company_url, $this->breezyGetRequestHeaders());
+        $company = json_decode($response->getBody());
+        $this->cache->set($cache_key, $company, $this->breezyCacheExpirationTimestamp());
+      }
+      catch (Exception $e) {
+        $this->getLogger('breezy')->error('Error accessing Breezy API: @error', [
+          '@error' => $e->getMessage(),
+        ]);
+      }
+    }
+    return $company;
   }
 
   /**
@@ -187,8 +257,18 @@ class BreezyApiManager {
    * @return string
    *   A timestamp string.
    */
-  protected function breezyCacheExpirationTimestamp() {
+  protected function breezyTokenCacheExpirationTimestamp() {
     return time() + (self::BREEZY_TOKEN_CACHE_DAYS * 24 * 60 * 60);
+  }
+
+  /**
+   * Generates a default cache expiration timestamp for Breezy data.
+   *
+   * @return string
+   *   A timestamp string.
+   */
+  protected function breezyCacheExpirationTimestamp() {
+    return time() + (self::BREEZY_DATA_CACHE_MINUTES * 60);
   }
 
   /**

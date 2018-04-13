@@ -2,8 +2,9 @@
 
 namespace Drupal\breezy\Controller;
 
-use Drupal\Core\Controller\ControllerBase;
 use Drupal\breezy\BreezyApiManager;
+use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Link;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -61,10 +62,14 @@ class BreezyPositionController extends ControllerBase {
       }
     }
 
+    $position_application_url = $this->breezyApiManager->getPositionApplicationUrl($position_id);
+
     return [
       '#theme' => 'breezy_position',
       '#name' => $this->position->name,
       '#description' => $this->position->description,
+      '#application_link' => Link::fromTextAndUrl('Apply now', $position_application_url),
+      '#application_url' => $position_application_url,
     ];
   }
 

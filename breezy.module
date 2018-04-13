@@ -40,6 +40,8 @@ function breezy_theme() {
       'variables' => [
         'name' => NULL,
         'description' => NULL,
+        'application_link' => NULL,
+        'application_url' => NULL,
       ],
       'template' => 'breezy-position',
     ],
