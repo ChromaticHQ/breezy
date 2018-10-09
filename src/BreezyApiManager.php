@@ -243,7 +243,11 @@ class BreezyApiManager {
    *   An array of positions names linked to their detail pages.
    */
   public function getPositionDetailLinks() {
-    foreach ($this->getPositions() as $position) {
+    $positions = $this->getPositions();
+    if (empty($positions)) {
+      return [];
+    }
+    foreach ($positions as $position) {
       $position_links[] = Link::createFromRoute($position->name, 'breezy.position_detail', [
         'position_id' => $position->_id,
       ]);

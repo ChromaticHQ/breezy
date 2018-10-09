@@ -14,4 +14,6 @@
 {% if title %}
   <h2>{{ title }}</h2>
 {% endif %}
-{{ positions }}
+{% if positions['#items'] is not empty %}
+  {{ positions }}
+{% endif %}
