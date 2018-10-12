@@ -6,6 +6,7 @@ use Drupal\breezy\BreezyApiManager;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Link;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -62,6 +63,10 @@ class BreezyPositionController extends ControllerBase {
       }
     }
 
+    if (!$this->positionIsPublished($position_id)) {
+      throw new AccessDeniedHttpException();
+    }
+
     $position_application_url = $this->breezyApiManager->getPositionApplicationUrl($position_id);
 
     return [
@@ -87,6 +92,25 @@ class BreezyPositionController extends ControllerBase {
       $this->position = $this->breezyApiManager->getPositionData($position_id);
     }
     return $this->position->name ?? NULL;
+  }
+
+  /**
+   * Check if the position is published.
+   *
+   * @param string $position_id
+   *   A Breezy position id.
+   *
+   * @return bool
+   *   TRUE if position is published, else FALSE.
+   */
+  protected function positionIsPublished($position_id) {
+    if (!$this->position) {
+      $this->position = $this->breezyApiManager->getPositionData($position_id);
+    }
+    if ($this->position->state === 'published') {
+      return TRUE;
+    }
+    return FALSE;
   }
 
 }
