@@ -63,7 +63,7 @@ class BreezyPositionController extends ControllerBase {
       }
     }
 
-    if (!$this->positionIsPublished($position_id)) {
+    if (!$this->positionIsPublished($position_id) || $this->positionIsPool($position_id)) {
       throw new AccessDeniedHttpException();
     }
 
@@ -108,6 +108,38 @@ class BreezyPositionController extends ControllerBase {
       $this->position = $this->breezyApiManager->getPositionData($position_id);
     }
     if ($this->position->state === 'published') {
+      return TRUE;
+    }
+    return FALSE;
+  }
+
+  /**
+   * Check position type.
+   *
+   * @param string $position_id
+   *   A Breezy position id.
+   *
+   * @return string
+   *   A Breezy position type.
+   */
+  protected function positionType($position_id) {
+    if (!$this->position) {
+      $this->position = $this->breezyApiManager->getPositionData($position_id);
+    }
+    return $this->position->org_type;
+  }
+
+  /**
+   * Check if a position is of type pool.
+   *
+   * @param string $position_id
+   *   A Breezy position id.
+   *
+   * @return bool
+   *   TRUE if position is a pool, else FALSE.
+   */
+  protected function positionIsPool($position_id) {
+    if ($this->positionType($position_id) === 'pool') {
       return TRUE;
     }
     return FALSE;

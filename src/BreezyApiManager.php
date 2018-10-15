@@ -118,11 +118,13 @@ class BreezyApiManager {
    *
    * @param bool $reset
    *   If TRUE, cached values will be ignored.
+   * @param bool $exclude_pools
+   *   If TRUE, exclude Breezy "pool" positions.
    *
    * @return array
    *   An array of Breezy positions.
    */
-  public function getPositions($reset = FALSE) {
+  public function getPositions($reset = FALSE, $exclude_pools = TRUE) {
     $cache_key = 'breezy.breezy_positions';
     if (!$reset && $cache = $this->cache->get($cache_key)) {
       $positions = $cache->data;
@@ -132,6 +134,11 @@ class BreezyApiManager {
         $positions_url = self::BREEZY_API_BASE_URL . '/company/' . $this->breezyConfig->get('breezy_company_id') . '/positions?state=published';
         $response = $this->httpClient->get($positions_url, $this->breezyGetRequestHeaders());
         $positions = json_decode($response->getBody());
+        if ($exclude_pools) {
+          $positions = array_filter($positions, function ($position) {
+            return $position->org_type !== 'pool';
+          });
+        }
         $this->cache->set($cache_key, $positions, $this->breezyCacheExpirationTimestamp());
       }
       catch (Exception $e) {
